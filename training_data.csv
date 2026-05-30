@@ -1,0 +1,77 @@
+description,amount,category
+Pizza Hut,500.0,Food
+Uber Ride,250.0,Travel
+T-Shirt,250.0,Shopping
+Gujrati Thali,250.0,Food
+KFC Dinner,650.0,Food
+McDonalds Burger,350.0,Food
+Starbucks Coffee,450.0,Food
+Tea Stall,50.0,Food
+Swiggy Order,780.0,Food
+Zomato Order,620.0,Food
+Restaurant Dinner,1500.0,Food
+Ice Cream,120.0,Food
+Lunch at Cafe,400.0,Food
+Breakfast,180.0,Food
+Flight Ticket,8500.0,Travel
+Train Ticket,1200.0,Travel
+Cab Booking,450.0,Travel
+Auto Rickshaw,100.0,Travel
+Petrol Pump,3000.0,Travel
+Diesel Refill,4500.0,Travel
+Hotel Booking,5000.0,Travel
+OYO Room,2200.0,Travel
+Resort Stay,7500.0,Travel
+Parking Fee,80.0,Travel
+Amazon Shopping,3500.0,Shopping
+Flipkart Order,2800.0,Shopping
+New Shoes,2200.0,Shopping
+Mobile Cover,400.0,Shopping
+Laptop Bag,1500.0,Shopping
+T-Shirt Purchase,900.0,Shopping
+Jeans Shopping,1800.0,Shopping
+Watch Purchase,3500.0,Shopping
+Headphones,2500.0,Shopping
+Keyboard Purchase,1800.0,Shopping
+Netflix Subscription,799.0,Entertainment
+Movie Night,450.0,Entertainment
+Gaming Recharge,1200.0,Entertainment
+Spotify Premium,119.0,Entertainment
+Cricket Match Ticket,2500.0,Entertainment
+Concert Ticket,4000.0,Entertainment
+Theme Park,2200.0,Entertainment
+YouTube Premium,149.0,Entertainment
+Bowling Game,900.0,Entertainment
+PlayStation Game,3500.0,Entertainment
+Doctor Checkup,1200.0,Health
+Medicine Purchase,650.0,Health
+Gym Membership,2500.0,Health
+Protein Powder,3200.0,Health
+Dental Treatment,4500.0,Health
+Eye Checkup,800.0,Health
+Hospital Bill,7000.0,Health
+Yoga Class,1500.0,Health
+Health Insurance,6000.0,Health
+Blood Test,950.0,Health
+College Fees,25000.0,Education
+Online Course,1800.0,Education
+Programming Book,650.0,Education
+Python Course,2200.0,Education
+Exam Fees,1200.0,Education
+Notebook Purchase,300.0,Education
+Udemy Course,499.0,Education
+Coaching Class,8500.0,Education
+AI Workshop,2000.0,Education
+Seminar Ticket,700.0,Education
+Electricity Bill,2400.0,Bills
+Water Bill,800.0,Bills
+Internet Recharge,999.0,Bills
+Mobile Recharge,299.0,Bills
+Gas Bill,1200.0,Bills
+Rent Payment,12000.0,Bills
+Credit Card Bill,8500.0,Bills
+DTH Recharge,450.0,Bills
+WiFi Bill,1100.0,Bills
+Insurance Premium,5000.0,Bills
+madicle issue,240.0,Health
+gujrati thali,280.0,Food
