@@ -1,359 +1,1248 @@
-import pandas as pd
-import matplotlib.pyplot as plt
-import pickle
+import tkinter as tk
+from tkinter import ttk, messagebox
+from datetime import datetime
+import json
 import os
-from datetime import datetime 
+import matplotlib.pyplot as plt
+import csv
+from tkinter import messagebox
+import pickle
 
-def add_expense(df):
 
-   # Description Validation
-    while True:
+DATA_FILE = "expenses.json"
 
-        description = input("\nEnter expense description: ").strip()
+all_expenses = []
 
-        if description == "":
+# ================= WINDOW =================
 
-            print("Description cannot be empty!")
+root = tk.Tk()
 
-        else:
+with open("model.pkl", "rb") as file:
+    model = pickle.load(file)
 
-            break
+with open("vectorizer.pkl", "rb") as file:
+    vectorizer = pickle.load(file)
 
-# Amount Validation
-    while True:
+root.title("AI Expense Tracker")
 
-            try:
+window_width = 1200
+window_height = 750
 
-                amount = float(input("Enter amount: "))
+screen_width = root.winfo_screenwidth()
+screen_height = root.winfo_screenheight()
 
-                if amount <= 0:
+center_x = int((screen_width / 2) - (window_width / 2))
+center_y = int((screen_height / 2) - (window_height / 2)) - 40
 
-                    print("Amount must be greater than 0!")
+root.geometry(
+    f"{window_width}x{window_height}+{center_x}+{center_y}"
+)
 
-                    continue
+root.resizable(False, False)
 
-                break
+# ================= COLORS =================
 
-            except ValueError:
+BG_COLOR = "#0F172A"
 
-                print("Invalid amount! Please enter numbers only.")
+CARD_COLOR = "#1E293B"
 
-       # AI Prediction
-    description_vector = vectorizer.transform([description])
+ACCENT_COLOR = "#3B82F6"
 
-    predicted_category = model.predict(description_vector)[0]
+TEXT_COLOR = "#F8FAFC"
 
-    confidence = model.predict_proba(description_vector).max()
+BORDER_COLOR = "#334155"
 
-    print(f"\nPredicted Category: {predicted_category}")
+BUTTON_TEXT = "#FFFFFF"
 
-    print(f"Confidence: {confidence:.2f}")
+selected_item = None
 
-    if confidence < 0.50:
+root.configure(
+    bg=BG_COLOR
+)
 
-        print("\nWarning: AI is not very confident about this prediction.")
+# ================= HEADER =================
 
-        # User Confirmation
-        confirm = input("Use this category? (yes/no): ")
+header_frame = tk.Frame(
+    root,
+    bg=BG_COLOR
+)
+header_frame.pack(fill="x", pady=10)
 
-        if confirm.lower() == "yes":
+title_label = tk.Label(
+    header_frame,
+    text="💰 AI Expense Tracker",
+    font=("Segoe UI", 24, "bold"),
+    bg=BG_COLOR,
+    fg=ACCENT_COLOR
+)
 
-            category = predicted_category
+title_label.pack()
 
-        else:
+# ================= INPUT FRAME =================
 
-            while True:
+input_frame = tk.LabelFrame(
+    root,
+    text="Add Expense",
+    padx=15,
+    pady=15,
+    bg=CARD_COLOR,
+    fg=ACCENT_COLOR,
+    font=("Segoe UI", 11, "bold")
+)
 
-                category = input("Enter correct category: ").strip().title()
+input_frame.pack(
+    fill="x",
+    padx=20,
+    pady=10
+)
 
-                if category == "":
+description_label = tk.Label(
+    input_frame,
+    text="Description",
+    font=("Segoe UI", 11),
+    bg=CARD_COLOR,
+    fg=TEXT_COLOR
+)
 
-                    print("Category cannot be empty!")
+description_label.grid(
+    row=0,
+    column=0,
+    padx=10,
+    pady=10
+)
 
-                else:
+description_entry = tk.Entry(
+    input_frame,
+    width=35,
+    font=("Segoe UI", 11),
+    bg="#FFFFFF",
+    fg="black",
+    insertbackground="black",
+    relief="flat"
+)
 
-                    break
+description_entry.grid(
+    row=0,
+    column=1,
+    padx=10,
+    pady=10
+)
 
-        category = category.strip().title()
+amount_label = tk.Label(
+    input_frame,
+    text="Amount",
+    font=("Segoe UI", 11),
+    bg=CARD_COLOR,
+    fg=TEXT_COLOR
+)
 
-        # Duplicate Check
-        duplicate = (
-            (df["description"] == description) &
-            (df["amount"] == amount) &
-            (df["category"] == category)
-        ).any()
+amount_label.grid(
+    row=0,
+    column=2,
+    padx=10,
+    pady=10
+)
 
-        if duplicate:
+amount_entry = tk.Entry(
+    input_frame,
+    width=20,
+    font=("Segoe UI", 11),
+    bg="#FFFFFF",
+    fg="black",
+    insertbackground="black",
+    relief="flat"
+)
 
-            print("\nThis expense already exists!")
+amount_entry.grid(
+    row=0,
+    column=3,
+    padx=10,
+    pady=10
+)
 
-            return df
+category_label = tk.Label(
+    input_frame,
+    text="Category",
+    font=("Segoe UI", 11),
+    bg=CARD_COLOR,
+    fg=TEXT_COLOR
+)
 
-        # Use Date time 
+category_label.grid(
+    row=0,
+    column=4,
+    padx=10,
+    pady=10
+)
 
-        curent_date = datetime.now().strftime("%d-%m-%y")
+categories = [
+    "Food",
+    "Travel",
+    "Health",
+    "Shopping",
+    "Education",
+    "Entertainment",
+    "Other"
+]
 
-        # Create Expense
-        new_data = {
-            "date" : curent_date,
-            "description": description,
-            "amount": amount,
-            "category": category
-        }
+category_var = tk.StringVar()
 
-        # Add Expense
-        df = pd.concat(
-            [df, pd.DataFrame([new_data])],
-            ignore_index=True
+category_var.set(categories[0])
+
+category_menu = ttk.Combobox(
+    input_frame,
+    textvariable=category_var,
+    values=categories,
+    width=20,
+    state="readonly",
+    cursor="hand2"
+)
+
+category_menu.grid(
+    row=0,
+    column=5,
+    padx=10,
+    pady=10
+)
+
+search_frame = tk.Frame(root)
+
+search_frame.pack(
+    fill="x",
+    padx=20,
+    pady=5
+)
+
+search_label = tk.Label(
+    search_frame,
+    text="Search Expense:",
+    font=("Segoe UI", 11)
+)
+
+search_label.pack(
+    side="left",
+    padx=5
+)
+
+search_entry = tk.Entry(
+    search_frame,
+    width=40,
+    font=("Segoe UI", 11)
+)
+
+search_entry.pack(
+    side="left",
+    padx=5
+)
+
+
+
+
+# ================= TABLE FRAME =================
+
+table_frame = tk.LabelFrame(
+    root,
+    text="Expense Records"
+)
+
+table_frame.pack(
+    fill="both",
+    expand=True,
+    padx=20,
+    pady=10
+)
+
+# ================= TABLE STYLE =================
+
+style = ttk.Style()
+
+style.theme_use("default")
+
+style.configure(
+    "Treeview",
+    background="#1E1E1E",
+    foreground="white",
+    rowheight=30,
+    fieldbackground="#1E1E1E",
+    borderwidth=0,
+    font=("Segoe UI", 10)
+)
+
+style.configure(
+    "Treeview.Heading",
+    background="#FF8C00",
+    foreground="white",
+    font=("Segoe UI", 11, "bold")
+)
+
+style.map(
+    "Treeview",
+    background=[
+        ("selected", "#FF8C00")
+    ]
+)
+
+
+expense_table = ttk.Treeview(
+    table_frame,
+    columns=(
+        "Description",
+        "Amount",
+        "Category",
+        "Date"
+    ),
+    show="headings",
+    height=8
+)
+
+expense_table.tag_configure(
+    "oddrow",
+    background="#252525"
+)
+
+expense_table.tag_configure(
+    "evenrow",
+    background="#1E1E1E"
+)
+
+expense_table.heading(
+    "Description",
+    text="Description"
+)
+
+expense_table.heading(
+    "Amount",
+    text="Amount"
+)
+
+expense_table.heading(
+    "Category",
+    text="Category"
+)
+
+expense_table.heading(
+    "Date",
+    text="Date"
+)
+
+expense_table.column(
+    "Description",
+    width=500
+)
+
+expense_table.column(
+    "Amount",
+    width=150,
+    anchor="center"
+)
+
+expense_table.column(
+    "Category",
+    width=250,
+    anchor="center"
+)
+
+expense_table.column(
+    "Date",
+    width=150,
+    anchor="center"
+)
+
+scrollbar = ttk.Scrollbar(
+    table_frame,
+    orient="vertical",
+    command=expense_table.yview
+)
+
+expense_table.configure(
+    yscrollcommand=scrollbar.set
+)
+
+expense_table.pack(
+    side="left",
+    fill="both",
+    expand=True,
+    padx=10,
+    pady=10
+)
+
+scrollbar.pack(
+    side="right",
+    fill="y"
+)
+
+
+#================= FUNCTION ===================
+
+def show_insights():
+
+    category_totals = {}
+
+    total_expense = 0
+
+    for expense in all_expenses:
+
+        category = expense["category"]
+
+        amount = float(
+            expense["amount"]
         )
 
-        # Save Data
-        df.to_csv("expenses.csv", index=False)
+        total_expense += amount
 
-        print("\nExpense Added Successfully!")
-                
-    return df
+        if category in category_totals:
 
-def view_expense(df):
+            category_totals[category] += amount
 
-    if len(df) == 0:
+        else:
 
-        print("\nNo expenses found!")
+            category_totals[category] = amount
+
+    if len(category_totals) == 0:
+
+        messagebox.showinfo(
+            "AI Insights",
+            "No expense data available"
+        )
 
         return
 
-    print("\n===== Expense Data =====")
+    highest_category = max(
+        category_totals,
+        key=category_totals.get
+    )
 
-    print(df)
+    highest_amount = category_totals[
+        highest_category
+    ]
 
-    return df
+    percentage = (
+        highest_amount
+        / total_expense
+    ) * 100
 
-def update_expense(df):
+    message = (
+        f"Total Expense: ₹{total_expense:.2f}\n\n"
+        f"Highest Category: {highest_category}\n"
+        f"Amount: ₹{highest_amount:.2f}\n\n"
+        f"{highest_category} accounts for "
+        f"{percentage:.1f}% of your spending."
+    )
 
-        if df.empty:
+    messagebox.showinfo(
+        "AI Insights",
+        message
+    )
 
-            print("\nNo expenses found!")
+def predict_category(event=None):
 
-            return
+    description = description_entry.get().strip()
 
-        print(df)
-        try:
-            index = int(input("\nEnter row index to update: "))
-            if index not in df.index:
-                print("Invalid Index!")
-                return
+    if description == "":
+        return
 
-        except ValueError:
-                print("Please Enter Number Only!")
-                return
+    text_vector = vectorizer.transform(
+        [description]
+    )
 
-        new_description = input("New Description: ").strip()
+    prediction = model.predict(
+        text_vector
+    )[0]
 
-        if new_description == "":
-            print("Description cannot be empty!")
-            return
+    category_var.set(
+        prediction
+    )
 
-        df.at[index, "description"] = new_description
+def export_csv():
 
-        try:
+    with open(
+        "expenses.csv",
+        "w",
+        newline=""
+    ) as file:
 
-            amount = float(input("Enter amount: "))
+        writer = csv.writer(file)
 
-            if amount <= 0:
+        writer.writerow(
+            [
+                "Description",
+                "Amount",
+                "Category",
+                "Date"
+            ]
+        )
 
-                print("Amount must be greater than 0!")
+        for row in expense_table.get_children():
 
-                return
+            writer.writerow(
+                expense_table.item(
+                    row,
+                    "values"
+                )
+            )
 
-        except ValueError:
+    messagebox.showinfo(
+    "Success",
+    "CSV File Exported Successfully"
+)
 
-            print("Invalid amount! Please enter numbers only.")
-
-        df.at[index, "amount"] = amount
-
-        new_category = input("New Category: ").strip().title()
-
-        if new_category == "":
-            print("Category cannot be empty!")
-            return
-
-        df.at[index, "category"] = new_category
-
-        df.to_csv("expenses.csv", index=False)
-
-        print("\nExpense Updated Successfully!")
-
-        return df
-
-def delete_expense(df):
-    
-        print(df)
-
-        try:
-            index = int(input("\nEnter row index to delete: "))
-            if index not in df.index:
-                print("Invalid Index!")
-                return
-
-        except ValueError:
-                print("Please Enter Number Only!")
-                return
-
-        df = df.drop(index).reset_index(drop=True)
-
-        df.to_csv("expenses.csv", index=False)
-
-        print("\nExpense Deleted Successfully!")
-
-        return df
-
-def analytics_expense(df):
+description_entry.bind(
+    "<KeyRelease>",
+    predict_category
+)
 
 
-        if df.empty:
+def save_data():
 
-            print("No expenses found.")
+    expenses = []
 
-            return
+    for row in expense_table.get_children():
 
-        total = df["amount"].sum()
-        
+        values = expense_table.item(
+            row,
+            "values"
+        )
 
-        # Adding Date column
+        expenses.append({
+            "description": values[0],
+            "amount": values[1],
+            "category": values[2],
+            "date": values[3]
+        })
 
-        today = datetime.now().strftime("%d-%m-%y")
+    with open(
+        DATA_FILE,
+        "w"
+    ) as file:
 
-        current_month = datetime.now().strftime("%m-%y")
+        json.dump(
+            expenses,
+            file,
+            indent=4
+        )
 
-        month_expense = df[df["date"].str[3:] == current_month]["amount"].sum()
+        global all_expenses
 
-        today_expense = df[df["date"] == today]["amount"].sum()
-
-        print("\nToday's Expense:", today_expense)
-
-        print("\n   This Month Expense:", month_expense)
-
-        print("\nTotal Expense:", total)
+        all_expenses = expenses.copy()
 
 
-        category_total = df.groupby("category")["amount"].sum()
+def load_data():
 
-        print("\n===== Category Wise Expense =====")
+    if not os.path.exists(DATA_FILE):
+        return
 
-        print(category_total)
+    with open(
+        DATA_FILE,
+        "r"
+    ) as file:
 
-        
-        #Highest Category Expense
+        expenses = json.load(file)
 
-        if len(category_total) > 0:
+        global all_expenses
 
-            highest_category = category_total.idxmax()
+        all_expenses = expenses.copy()
 
-            highest_amount = category_total.max()
+    for expense in expenses:
 
-            percentage = (highest_amount / total) * 100
+        row_count = len(
+            expense_table.get_children()
+        )
 
-            print("\nHighest Spending Category:", highest_category)
+        if row_count % 2 == 0:
 
-            print(f"{highest_category} accounts for {percentage:.2f}% of your total spending.")
+            row_tag = "evenrow"
 
-            if percentage > 50:
-
-                print(f"\nWarning: More than half of your spending is on {highest_category}.")
-
-            else:
-
-                print("\nYour spending is fairly balanced.")
-
-            print("Amount:", highest_amount)
-        
         else:
-            print("\nNo category data found.")
+
+            row_tag = "oddrow"
+
+        expense_table.insert(
+            "",
+            "end",
+            values=(
+                expense["description"],
+                expense["amount"],
+                expense["category"],
+                expense["date"]
+            ),
+            tags=(row_tag,)
+        )
+
+    update_total()
+
+def search_expense():
+
+    keyword = search_entry.get().strip().lower()
+
+    expense_table.delete(
+        *expense_table.get_children()
+    )
+
+    for expense in all_expenses:
+
+        if (
+        keyword in expense["description"].lower()
+        or
+        keyword in expense["category"].lower()
+        ):
+
+            expense_table.insert(
+                "",
+                "end",
+                values=(
+                    expense["description"],
+                    expense["amount"],
+                    expense["category"],
+                    expense["date"]
+                )
+            )
 
 
-        # Graph
-        if len(df) == 0:
-            print("No expenses found.")
-            return
-        
-        category_total.plot(kind="bar")
+def show_graph():
 
-        plt.title("Expense By Category")
+    category_totals = {}
 
-        plt.xlabel("Category")
+    for row in expense_table.get_children():
 
-        plt.ylabel("Amount")
+        values = expense_table.item(
+            row,
+            "values"
+        )
 
-        plt.show()
+        category = values[2]
+        amount = float(values[1])
 
-        return df
+        if category in category_totals:
 
-def exit_expense(df):
+            category_totals[category] += amount
 
-        print("\nExiting App...")
+        else:
 
-        return df
+            category_totals[category] = amount
 
-# Load ML model
-model = pickle.load(open("model.pkl", "rb"))
+    plt.figure(
+        figsize=(8, 4)
+    )
 
-# Load vectorizer
-vectorizer = pickle.load(open("vectorizer.pkl", "rb"))
+    bars = plt.bar(
+    category_totals.keys(),
+    category_totals.values(),
+    width=0.4
+)
 
-if not os.path.exists("expenses.csv"):
-    pd.DataFrame(
-        columns=["date","description","amount","category"]
-    ).to_csv("expenses.csv", index=False)
+    for bar in bars:
 
-# Main loop
-while True:
+        height = bar.get_height()
 
-    print("\n===== AI Expense Tracker =====")
+        plt.text(
+            bar.get_x() + bar.get_width()/2,
+            height,
+            f"₹{height:.0f}",
+            ha="center",
+            va="bottom"
+        )
 
-    print("1. Add Expense")
-    print("2. View Expenses")
-    print("3. Update Expense")
-    print("4. Delete Expense")
-    print("5. Show Analytics")
-    print("6. Exit")
+    plt.title(
+    "Expense Analysis By Category",
+    fontsize=14,
+    fontweight="bold"
+)
 
-    choice = input("\nEnter your choice: ")
+    plt.xlabel(
+        "Category"
+    )
 
-    # Load latest data
-    df = pd.read_csv("expenses.csv")
+    plt.ylabel(
+        "Amount"
+    )
 
-    # ADD EXPENSE
+    plt.xticks(
+    rotation=20
+)
 
-    if choice == "1":
+    plt.tight_layout()
 
-        df = add_expense(df)
+    plt.show()
 
-    # VIEW EXPENSES
-    elif choice == "2":
-        
-        view_expense(df)
 
-    # UPDATE EXPENSE
-    elif choice == "3":
+def update_total():
 
-        update_expense(df)
+    total = 0
 
-    # DELETE EXPENSE
-    elif choice == "4":
+    for item in expense_table.get_children():
 
-        delete_expense(df)
+        values = expense_table.item(
+            item,
+            "values"
+        )
 
-    # ANALYTICS
-    elif choice == "5":
+        total += float(values[1])
 
-        analytics_expense(df)
+    total_label.config(
+        text=f"Total Expense : ₹{total:.2f}"
+    )
 
-    # EXIT
-    elif choice == "6":
+def update_records():
 
-        exit_expense(df)
-        break
+    total_records = len(
+        expense_table.get_children()
+    )
 
-    else:
+    records_label.config(
+        text=f"📄 Total Records : {total_records}"
+    )
 
-        print("\nInvalid Choice!")
+def add_expense():
+
+    description = description_entry.get().strip().title()
+
+    amount = amount_entry.get().strip()
+
+    category = category_var.get()
+
+    # Empty Validation
+    if description == "":
+        messagebox.showerror(
+    "Error",
+    "Description cannot be empty"
+)   
+        return
+
+    if amount == "":
+        messagebox.showerror(
+    "Error",
+    "Amount cannot be empty"
+)
+        return
+
+    # Number Validation
+    try:
+        amount = float(amount)
+
+    except ValueError:
+        messagebox.showerror(
+        "Error",
+        "Amount must be a number"
+        )
+        return
+    
+    if amount <= 0:
+        messagebox.showerror(
+            "Error",
+            "Amount must be greater than 0"
+        )
+        return
+
+    current_date = datetime.now().strftime(
+        "%d-%m-%Y"
+    )
+
+    expense_table.insert(
+        "",
+        "end",
+        values=(
+            description,
+            amount,
+            category,
+            current_date
+        )
+    )
+
+    messagebox.showinfo(
+    "Success",
+    "Expense Added Successfully"
+)
+
+    update_total()
+
+    update_records()
+
+    save_data()
+
+
+    description_entry.delete(0, tk.END)
+
+    amount_entry.delete(0, tk.END)
+
+    category_var.set("Food")
+
+    description_entry.focus()
+
+
+def delete_expense():
+
+    selected_item = expense_table.selection()
+
+    if not selected_item:
+        messagebox.showwarning(
+    "Warning",
+    "Please select an expense first"
+)
+        return
+
+
+    if not messagebox.askyesno(
+        "Confirm Delete",
+        "Are you sure you want to delete this expense?"
+    ):
+        return
+
+    
+    expense_table.delete(
+        selected_item[0]
+    )
+
+    messagebox.showinfo(
+    "Success",
+    "Expense Deleted Successfully"
+)
+
+    update_total()
+
+    update_records()
+
+    save_data()
+
+
+def load_expense():
+
+    global selected_item
+
+    selected = expense_table.selection()
+
+    if not selected:
+        messagebox.showwarning(
+        "Warning",
+        "Please select an expense first"
+        )
+        return
+
+    selected_item = selected[0]
+
+    values = expense_table.item(
+        selected_item,
+        "values"
+    )
+
+    description_entry.delete(0, tk.END)
+
+    amount_entry.delete(0, tk.END)
+
+    description_entry.insert(
+        0,
+        values[0]
+    )
+
+    amount_entry.insert(
+        0,
+        values[1]
+    )
+
+    category_var.set(
+        values[2]
+    )
+
+def update_expense():
+
+    global selected_item
+
+    if selected_item is None:
+
+        messagebox.showwarning(
+            "Warning",
+            "Please load an expense first"
+        )
+
+        return
+
+    description = description_entry.get().strip().title()
+
+    amount = amount_entry.get().strip()
+
+    category = category_var.get()
+
+    if description == "":
+        print("Description cannot be empty")
+        return
+
+    if amount == "":
+        print("Amount cannot be empty")
+        return
+
+    try:
+        amount = float(amount)
+
+    except ValueError:
+        print("Amount must be a number")
+        return
+
+    old_values = expense_table.item(
+        selected_item,
+        "values"
+    )
+
+    expense_table.item(
+        selected_item,
+        values=(
+            description,
+            amount,
+            category,
+            old_values[3]
+        )
+    )
+
+    messagebox.showinfo(
+    "Success",
+    "Expense Updated Successfully"
+)
+
+    update_total()
+
+    save_data()
+
+
+    description_entry.delete(0, tk.END)
+    amount_entry.delete(0, tk.END)
+
+    category_var.set("Food")
+
+    selected_item = None
+
+    description_entry.focus()
+
+def show_summary():
+
+    category_totals = {}
+
+    for expense in all_expenses:
+
+        category = expense["category"]
+
+        amount = float(
+            expense["amount"]
+        )
+
+        if category in category_totals:
+
+            category_totals[category] += amount
+
+        else:
+
+            category_totals[category] = amount
+
+    print("\nCATEGORY SUMMARY\n")
+
+    for category, total in category_totals.items():
+
+        print(
+            f"{category} : ₹{total:.2f}"
+        )
+
+def reset_search():
+
+    search_entry.delete(
+        0,
+        tk.END
+    )
+
+    expense_table.delete(
+        *expense_table.get_children()
+    )
+
+    load_data()
+
+def animate_hover(widget, start, end, step=1):
+
+    r1, g1, b1 = widget.winfo_rgb(start)
+    r2, g2, b2 = widget.winfo_rgb(end)
+
+    r = r1 + (r2 - r1) // 10
+    g = g1 + (g2 - g1) // 10
+    b = b1 + (b2 - b1) // 10
+
+    color = f"#{r//256:02x}{g//256:02x}{b//256:02x}"
+
+    widget.config(bg=color)
+
+
+def premium_hover(
+    button,
+    hover_color,
+    normal_color
+):
+
+    def enter(e):
+
+        button.config(
+            bg=hover_color,
+            fg="white",
+            relief="raised",
+            bd=4,
+            cursor="hand2"
+        )
+
+    def leave(e):
+
+        button.config(
+            bg=normal_color,
+            fg="white",
+            relief="flat",
+            bd=0
+        )
+
+    button.bind("<Enter>", enter)
+    button.bind("<Leave>", leave)
+
+
+#================== BUTTON ========================
+
+add_button = tk.Button(
+    input_frame,
+    text="➕ Add Expense",
+    font=("Segoe UI", 11, "bold"),
+    width=15,
+    command=add_expense,
+    bg=ACCENT_COLOR,
+    fg="white",
+    relief="flat",
+    cursor="hand2"
+)
+
+add_button.grid(
+    row=0,
+    column=6,
+    padx=15,
+    pady=10
+)
+
+search_button = tk.Button(
+    search_frame,
+    text="Search",
+    font=("Segoe UI", 10, "bold"),
+    command=search_expense,
+    cursor="hand2"
+)
+
+search_button.pack(
+    side="left",
+    padx=5
+)
+
+reset_button = tk.Button(
+    search_frame,
+    text="❌ Reset",
+    font=("Segoe UI", 10, "bold"),
+    command=reset_search
+)
+
+reset_button.pack(
+    side="left",
+    padx=5
+)
+
+
+# ================= STATS FRAME =================
+
+stats_frame = tk.LabelFrame(
+    root,
+    text="Statistics",
+    bg=CARD_COLOR,
+    fg=ACCENT_COLOR,
+    font=("Segoe UI", 11, "bold"),
+    padx=10,
+    pady=10
+)
+
+stats_frame.pack(
+    fill="x",
+    padx=20,
+    pady=10
+)
+
+total_label = tk.Label(
+    stats_frame,
+    text="💰 Total Expense : ₹0.00",
+    font=("Segoe UI", 14, "bold"),
+    bg=CARD_COLOR,
+    fg=ACCENT_COLOR
+)
+
+records_label = tk.Label(
+    stats_frame,
+    text="📄 Total Records : 0",
+    font=("Segoe UI", 12, "bold"),
+    bg=CARD_COLOR,
+    fg=TEXT_COLOR
+)
+
+records_label.pack(
+    pady=5
+)
+
+total_label.pack(
+    pady=3
+)
+
+
+# ================= ACTION FRAME =================
+
+action_frame = tk.Frame(root)
+
+action_frame.pack(
+    fill="x",
+    padx=20,
+    pady=10
+)
+
+export_button = tk.Button(
+    action_frame,
+    text="📄 Export CSV",
+    font=("Segoe UI", 11, "bold"),
+    width=15,
+    command=export_csv,
+    bg=ACCENT_COLOR,
+    fg="white",
+    cursor="hand2",
+    bd=0
+)
+
+font=("Segoe UI", 11, "bold"),
+cursor="hand2",
+bd=0,
+relief="flat",
+activeforeground="white",
+premium_hover(
+    add_button,
+    "#10B981",
+    ACCENT_COLOR
+)
+
+
+load_button = tk.Button(
+    action_frame,
+    text="📂 Load",
+    font=("Segoe UI", 11, "bold"),
+    width=15,
+    command=load_expense,
+    bg="#2196F3",
+    fg="white",
+    relief="flat",
+    cursor="hand2",
+)
+
+load_button.pack(
+    side="left",
+    padx=10
+)
+
+update_button = tk.Button(
+    action_frame,
+    text="✏️ Update",
+    font=("Segoe UI", 11, "bold"),
+    width=18,
+    bg="#FF9800",
+    command=update_expense,
+    cursor="hand2"
+)
+
+update_button.pack(
+    side="left",
+    padx=10
+)
+
+delete_button = tk.Button(
+    action_frame,
+    text="🗑 Delete",
+    font=("Segoe UI", 11, "bold"),
+    width=18,
+    bg="#F44336",
+    command=delete_expense,
+    cursor="hand2"
+)
+
+delete_button.pack(
+    side="left",
+    padx=10
+)
+
+graph_button = tk.Button(
+    action_frame,
+    text="📊 Analytics",
+    font=("Segoe UI", 11, "bold"),
+    width=18,
+    bg="#4CAF50",
+    command=show_graph,
+    cursor="hand2"
+)
+
+graph_button.pack(
+    side="left",
+    padx=10
+)
+
+insight_button = tk.Button(
+    action_frame,
+    text="🤖 AI Insights",
+    font=("Segoe UI", 11, "bold"),
+    width=15,
+    command=show_insights,
+    bg=ACCENT_COLOR,
+    fg="white",
+    cursor="hand2",
+    bd=0
+)
+
+insight_button.pack(
+    side="left",
+    padx=10
+)
+
+premium_hover(
+    add_button,
+    "#10B981",
+    ACCENT_COLOR
+)
+
+premium_hover(
+    load_button,
+    "#3B82F6",
+    ACCENT_COLOR
+)
+
+premium_hover(
+    update_button,
+    "#6366F1",
+    ACCENT_COLOR
+)
+
+premium_hover(
+    delete_button,
+    "#EF4444",
+    ACCENT_COLOR
+)
+
+premium_hover(
+    graph_button,
+    "#8B5CF6",
+    ACCENT_COLOR
+)
+
+premium_hover(
+    export_button,
+    "#F59E0B",
+    ACCENT_COLOR
+)
+
+premium_hover(
+    insight_button,
+    "#06B6D4",
+    ACCENT_COLOR
+)
+
+# ================= RUN =================
+
+load_data()
+
+update_records()
+
+root.mainloop()
